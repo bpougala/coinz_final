@@ -185,7 +185,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             val g = f.geometry() as Point
             val coordinates = g.coordinates()
             val j = f.properties()
-            map?.addMarker(MarkerOptions().position(LatLng(coordinates[1], coordinates[0])))
+            val value = j?.get("value").toString()
+            map?.addMarker(MarkerOptions().title(j?.get("currency").toString()).snippet(value).position(LatLng(coordinates[1], coordinates[0])))
         }
 
     }
@@ -212,17 +213,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         @Throws(IOException::class)
         private fun downloadUrl(urlString: String): InputStream {
             val url = URL(urlString)
-            Log.d(tag, "The exception happens before the url connection")
             val conn = url.openConnection() as HttpsURLConnection
             conn.readTimeout = 10000
             conn.connectTimeout = 15000
             conn.requestMethod = "GET"
 
             conn.doInput = true
-            Log.d(tag, "Or before the actual connection is made")
 
             conn.connect()
-            Log.d(tag, "The exception happens at the end of the function call")
             return conn.inputStream
         }
 
