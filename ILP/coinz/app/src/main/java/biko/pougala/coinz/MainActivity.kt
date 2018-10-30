@@ -5,6 +5,7 @@ import android.os.AsyncTask
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import com.mapbox.android.core.location.LocationEngine
 import com.mapbox.android.core.location.LocationEngineListener
 import com.mapbox.android.core.location.LocationEnginePriority
@@ -58,6 +59,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        val text = "Hi, there!"
+        val duration = Toast.LENGTH_SHORT
+
+        val toast = Toast.makeText(applicationContext, text, duration)
+        toast.show()
 
         Mapbox.getInstance(this, ACCESS_TOKEN)
 
@@ -84,7 +90,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
             // display all the GeoJSON file's points on the map
 
-            DownloadFileTask(this@MainActivity).execute("https://homepages.inf.ed.ac.uk/stg/coinz/2018/10/23/coinzmap.geojson")
+            DownloadFileTask(this@MainActivity).execute("https://homepages.inf.ed.ac.uk/stg/coinz/2018/10/29/coinzmap.geojson")
 
         }
     }
