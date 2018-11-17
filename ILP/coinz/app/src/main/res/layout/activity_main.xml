@@ -27,6 +27,6 @@
             android:layout_marginStart="8dp" android:layout_marginTop="8dp"
             mapbox:layout_constraintTop_toTopOf="parent" android:layout_marginBottom="8dp"
             mapbox:layout_constraintBottom_toBottomOf="parent" mapbox:layout_constraintHorizontal_bias="0.503"
-            mapbox:layout_constraintVertical_bias="0.959"/>
+            mapbox:layout_constraintVertical_bias="0.018"/>
 
 </android.support.constraint.ConstraintLayout>

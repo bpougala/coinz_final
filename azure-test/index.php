@@ -1,5 +1,5 @@
 <?php
 
-echo "Hello Aure!";
+echo "Hello Azure! (updated)";
 
 ?>

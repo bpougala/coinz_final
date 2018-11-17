@@ -1,11 +1,17 @@
 package biko.pougala.coinz
 
+import android.content.DialogInterface
+import android.content.Intent
 import android.location.Location
 import android.os.AsyncTask
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.v7.app.AlertDialog
 import android.util.Log
+import android.view.View
+import android.widget.Button
 import android.widget.Toast
+import com.google.firebase.firestore.*
 import com.mapbox.android.core.location.LocationEngine
 import com.mapbox.android.core.location.LocationEngineListener
 import com.mapbox.android.core.location.LocationEnginePriority
@@ -27,13 +33,18 @@ import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.Point
 import com.mapbox.mapboxsdk.annotations.MarkerOptions
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource
+import kotlinx.android.synthetic.main.activity_login.*
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.toast
 import java.io.IOException
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
+import org.json.JSONObject
+import java.time.LocalDate
+import java.util.Calendar
 
 interface DownloadCompleteListener {
     fun downloadComplete(result: String)
@@ -48,8 +59,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private var map: MapboxMap? = null
     private var ACCESS_TOKEN =
         "pk.eyJ1IjoiYnBvdWdhbGEiLCJhIjoiY2pqaGE1empjNTE1ZzN3cjVnZ2RnN3RoNSJ9.EYB-fQasYyuPp9hPeSE_FA"
+    private var commenceButton: Button? = null
+    private var locations = HashMap<Location, ArrayList<String>>()
+    private var isChasing: Boolean = false
+    private var rates = HashMap<String, Double>()
+    private var username = ""
+    private var coinCounter = 0 // this will be used to count how many coins were collected by the user
 
-
+    private var firestore: FirebaseFirestore? = null
+    private var firestoreCoins: DocumentReference? = null
 
     private lateinit var originLocation: Location
     private lateinit var permissionsManager: PermissionsManager
@@ -57,9 +75,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private lateinit var locationLayerPlugin: LocationLayerPlugin
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val text = "Hi, there!"
+        username = intent.getStringExtra("username")
+
+        val text = "Hi, ${username}!"
         val duration = Toast.LENGTH_SHORT
 
         val toast = Toast.makeText(applicationContext, text, duration)
@@ -67,10 +88,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
         Mapbox.getInstance(this, ACCESS_TOKEN)
 
+        commenceButton = findViewById(R.id.startChasingButton)
         mapView = findViewById(R.id.mapboxMapView)
 
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync(this)
+
+
+        commenceButton?.setOnClickListener {
+            changeButton(commenceButton, false)
+            val position = CameraPosition.Builder()
+                .zoom(18.0)
+                .build()
+            map?.cameraPosition = position
+            isChasing = true
+        }
+
+
+        firestore = FirebaseFirestore.getInstance()
+        val settings = FirebaseFirestoreSettings.Builder().setTimestampsInSnapshotsEnabled(true).build()
+        firestore?.firestoreSettings = settings
     }
 
 
@@ -82,7 +119,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             map?.uiSettings?.isCompassEnabled = true
             map?.uiSettings?.isZoomControlsEnabled = true
             val position = CameraPosition.Builder()
-                .zoom(12.0)
+                .zoom(14.0)
                 .build()
             // make location information available
             map?.cameraPosition = position
@@ -90,7 +127,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
             // display all the GeoJSON file's points on the map
 
-            DownloadFileTask(this@MainActivity).execute("https://homepages.inf.ed.ac.uk/stg/coinz/2018/10/29/coinzmap.geojson")
+            DownloadFileTask(this@MainActivity).execute("https://homepages.inf.ed.ac.uk/stg/coinz/2018/11/12/coinzmap.geojson")
 
         }
     }
@@ -98,7 +135,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
     private fun enableLocation() {
         if (PermissionsManager.areLocationPermissionsGranted(this)) {
-            Log.d(tag, "Permissions are granted")
             initialiseLocationEngine()
             initialiseLocationLayer()
         } else {
@@ -108,10 +144,23 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         }
     }
 
+
+    private fun changeButton(button: Button?, value: Boolean?) {
+
+        // The variable "value" determines whether we want the button to appear or disappear
+        // This function is made to counteract the fact that we can't change the visibility of the button directly in the
+        // setOnClickListener callback on line 81.
+        if (value == true) {
+            button?.visibility = View.VISIBLE
+        } else {
+            button?.visibility = View.GONE
+        }
+    }
     @SuppressWarnings("MissingPermission")
     private fun initialiseLocationEngine() {
         locationEngine = LocationEngineProvider(this)
             .obtainBestLocationEngineAvailable()
+        locationEngine.addLocationEngineListener(this)
         locationEngine.apply {
             interval = 5000
             fastestInterval = 1000
@@ -150,17 +199,21 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     }
 
     override fun onLocationChanged(location: Location?) {
+
         if (location == null) {
             Log.d(tag, "[onLocationChanged] location is null")
         } else {
             originLocation = location
             setCameraPosition(originLocation)
+
+            if(isChasing == true) {
+                startChasing(location)
+            }
         }
     }
 
     @SuppressWarnings("MissingPermission")
     override fun onConnected() {
-        Log.d(tag, "[onConnected] reauesting location updates")
         locationEngine.requestLocationUpdates()
     }
 
@@ -181,22 +234,159 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     public override fun onStart() {
         super.onStart()
         mapView?.onStart()
+
     }
 
     override fun downloadComplete(result: String) {
         val fs = FeatureCollection.fromJson(result)
         val features = fs.features()
 
+        /** We retrieve the values iN GOLD of each currency and store them in a HashMap to use them later to convert each
+         collected coin to its equivalent in GOLD
+        **/
+
+        val features_js = JSONObject(result)
+        val rates_js = features_js.getJSONObject("rates")
+        val value_shil = rates_js.getString("SHIL")
+        rates.put("SHIL", value_shil.toDouble())
+
+        val value_dolr = rates_js.getString("DOLR")
+        rates.put("DOLR", value_dolr.toDouble())
+
+        val value_quid = rates_js.getString("QUID")
+        rates.put("QUID", value_quid.toDouble())
+
+        val value_peny = rates_js.getString("PENY")
+        rates.put("PENY", value_peny.toDouble())
+
+
+
         for (f in features.orEmpty()) { // this list is of nullable type, we have to make sure only non-null arrays get called here
             val g = f.geometry() as Point
             val coordinates = g.coordinates()
             val j = f.properties()
             val value = j?.get("value").toString()
+            val money = value + " " + j?.get("currency").toString()
+            val location = Location("")
+            location.latitude = coordinates[1]
+            location.longitude = coordinates[0]
             map?.addMarker(MarkerOptions().title(j?.get("currency").toString()).snippet(value).position(LatLng(coordinates[1], coordinates[0])))
+            val content = ArrayList<String>()
+            content.add(money)
+            content.add(j?.get("id").toString())
+            locations.put(location, content) // we hold the value of a coin and its location in a hashmap to use it later during coins-hunting
         }
 
     }
 
+    public override fun onResume() {
+        super.onResume()
+        mapView?.onResume()
+    }
+
+    public override fun onPause() {
+        super.onPause()
+        mapView?.onPause()
+    }
+
+    public override fun onStop() {
+        super.onStop()
+        mapView?.onStop()
+        if (locationLayerPlugin != null) {
+            locationLayerPlugin.onStart();
+        }
+    }
+
+
+    private fun startChasing(location: Location) {
+        // whenever a new location is available, this function will compute the distance between the user and each coin.
+        // if the distance is less than 500 meters, the user will have the possibility to collect it.
+
+        for ((loc, content) in locations) {
+            val distance = computeDistance(location, loc)
+            if (distance<=0.25) { // the distance is in kilometers
+                val builder = AlertDialog.Builder(this@MainActivity)
+                builder.setTitle("New Coin available!")
+                builder.setMessage("Would you like to collect " + content.get(0) + " ?")
+                builder.setPositiveButton(R.string.collect){dialog, which ->
+                    dialog.dismiss()
+                    coinCounter++
+                    val coin = convertToGOLD(content.get(0))
+                    val today = LocalDate.now().toString()
+                    val newCoin = mapOf(
+                        "gold_${coinCounter}" to coin
+                     //    "username" to username
+                    )
+                    Log.d(tag, "Today is ${today}")
+                    Log.d(tag, "The username is ${username}")
+                    firestoreCoins = firestore?.collection("users-bank")?.document(username)?.collection("coins")?.document(today)
+                    firestoreCoins?.set(newCoin, SetOptions.merge())
+                        ?.addOnSuccessListener {
+                            val toast = Toast.makeText(applicationContext, "Coin collected", Toast.LENGTH_SHORT)
+                            toast.show()
+                        }
+                        ?.addOnFailureListener { e -> Log.e(tag, e.message) }
+                }
+                builder.show()
+
+
+                break
+
+            }
+        }
+    }
+
+    private fun computeDistance(loc1: Location?, loc2: Location?): Double {
+        // It will compute the Euclidean distance between two lat/lng pairs
+        // From stackoverflow
+        val radius = 6371 // Earth radius
+        val lat1 = loc1!!.latitude
+        val lat2 = loc2!!.latitude
+        val lon1 = loc1.longitude
+        val lon2 = loc2.longitude
+
+        val dLat = deg2rad(lat2-lat1)
+        val dLon = deg2rad(lon2-lon1)
+
+        val a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2)
+        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+        val d = radius * c
+
+        return d
+    }
+
+    private fun convertToGOLD(value: String): Double {
+        var value_ = value.drop(1)
+        Log.d(tag, value)
+        if ("SHIL" in value) {
+            val cur_ = value_.dropLast(8) // remove the currency from the String and convert to Double (ex: "7.3783873 SHIL" -> "7.3783873"
+            val cur = cur_.toDouble()
+            val shil = rates.getValue("SHIL").toDouble()
+            return (cur * shil)
+
+        } else if("DOLR" in value) {
+            val cur_ = value_.dropLast(8)
+            val cur = cur_.toDouble()
+            val dolr = rates.getValue("DOLR").toDouble()
+            return (cur * dolr)
+
+        } else if("QUID" in value) {
+            val cur_ = value_.dropLast(8)
+            val cur = cur_.toDouble()
+            val quid = rates.getValue("QUID").toDouble()
+            return (cur * quid)
+
+        } else { // edge case being PENY
+            val cur_ = value_.dropLast(8)
+            val cur = cur_.toDouble()
+            val peny = rates.getValue("PENY").toDouble()
+            return cur * peny
+        }
+    }
+    fun deg2rad(deg: Double): Double {
+        // from StakOverFlow
+        return deg * (Math.PI/180)
+    }
     class DownloadFileTask(private val caller : DownloadCompleteListener) : AsyncTask<String, Void, String>() {
 
 
