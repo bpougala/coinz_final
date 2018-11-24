@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
@@ -44,7 +45,7 @@ import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import org.json.JSONObject
 import java.time.LocalDate
-import java.util.Calendar
+import java.util.*
 
 interface DownloadCompleteListener {
     fun downloadComplete(result: String)
@@ -125,9 +126,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             map?.cameraPosition = position
             enableLocation()
 
-            // display all the GeoJSON file's points on the map
+            // Download the current day's map
+            val currentDate = Calendar.getInstance()
+            val year = currentDate.get(Calendar.YEAR)
+            val month = currentDate.get(Calendar.MONTH)
+            val day = currentDate.get(Calendar.DAY_OF_MONTH)
+            val address = "https://homepages.inf.ed.ac.uk/stg/coinz/$year/$month/$day/coinzmap.geojson"
 
-            DownloadFileTask(this@MainActivity).execute("https://homepages.inf.ed.ac.uk/stg/coinz/2018/11/12/coinzmap.geojson")
+
+
+            DownloadFileTask(this@MainActivity).execute(address)
 
         }
     }
@@ -306,6 +314,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             val distance = computeDistance(location, loc)
             if (distance<=0.25) { // the distance is in kilometers
                 val builder = AlertDialog.Builder(this@MainActivity)
+
+                // Link the AlertDialog to the new_coin_alert.xml layout file
+                val factory = LayoutInflater.from(this@MainActivity)
+                val view = factory.inflate(R.layout.new_coin_alert, null)
+                builder.setView(view)
                 builder.setTitle("New Coin available!")
                 builder.setMessage("Would you like to collect " + content.get(0) + " ?")
                 builder.setPositiveButton(R.string.collect){dialog, which ->
