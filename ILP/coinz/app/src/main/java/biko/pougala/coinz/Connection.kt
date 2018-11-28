@@ -13,6 +13,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import org.jetbrains.anko.toast
+import timber.log.Timber
 
 const val EXTRA_MESSAGE = "biko.pougala.coinz.MESSAGE"
 
@@ -112,7 +113,7 @@ class Connection : AppCompatActivity() {
 
                         val db = mapOf(
                             "gold" to 0.0,
-                            "username" to username
+                            "email" to email
                         )
 
                         firestoreCoinz?.set(db)
@@ -139,6 +140,7 @@ class Connection : AppCompatActivity() {
             val builder = AlertDialog.Builder(this@Connection)
             builder.setTitle("No email/password entered")
             builder.setMessage("Please make sure you properly entered an email and a password before trying again.")
+            builder.show()
             updateUI(null)
 
         } else {
@@ -147,13 +149,23 @@ class Connection : AppCompatActivity() {
             firestoreCoinz?.get()?.addOnCompleteListener(this) { task ->
                 if(task.isSuccessful) {
                     val document = task.result
+                    Log.d(tag, "username from result = $username")
                     if(document != null) {
-                        val username_ = document.get("username").toString()
-                        mAuth?.signInWithEmailAndPassword(username_, password)
-                            ?.addOnCompleteListener(this) { task ->
-                                if(task.isSuccessful) {
+                        val email = document.get("email").toString()
+                        Log.d(tag,"email= $email")
+                        Timber.d("password= $email")
+                        mAuth?.signInWithEmailAndPassword(email, password)
+                            ?.addOnCompleteListener(this) { task_ ->
+                                if(task_.isSuccessful) {
+                                    Log.d(tag, "Sign in successful")
                                     updateUI(mAuth?.currentUser)
 
+                                } else {
+                                    Log.d(tag, "Sign in unsucessful")
+                                    val builder = AlertDialog.Builder(this@Connection)
+                                    builder.setTitle("Wrong credentials")
+                                    builder.setMessage("An error occured while logging you in. Please review your credentials and try again.")
+                                    builder.show()
                                 }
                             }
                     }
@@ -168,17 +180,21 @@ class Connection : AppCompatActivity() {
     fun updateUI(user: FirebaseUser?) {
         if (user != null) {
             val newEmail: String? = user.email
+            Log.d(tag, "newEmail = $newEmail")
             firestoreCoinz = firestore?.collection(COLLECTION_KEY)
                 ?.document(newEmail!!)
 
             firestoreCoinz?.get()?.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val details = task.result
+                    Log.d(tag, "details = $details")
 
                 }
             }
             val intent = Intent(this@Connection, MainActivity::class.java)
             intent.putExtra("username", username)
+            Timber.d("username = $username")
+            Log.d(tag, "username = $username")
 
             startActivity(intent)
 

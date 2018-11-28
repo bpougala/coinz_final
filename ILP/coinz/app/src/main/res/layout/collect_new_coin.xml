@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--> This XML layout file is used to define the layout of the AlertDialog whenever a new coin can be picked up -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <ImageView
+            android:id="@+id/coin_icon"
+            android:layout_centerInParent="true"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:layout_marginBottom="10dp"
+    />
+
+
+    <TextView
+            android:id="@+id/collect_text"
+            app:fontFamily="@font/rubik_medium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_below="@id/coin_icon"/>
+
+</RelativeLayout>

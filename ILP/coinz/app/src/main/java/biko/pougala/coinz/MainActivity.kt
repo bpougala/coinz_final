@@ -11,6 +11,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import com.google.firebase.firestore.*
 import com.mapbox.android.core.location.LocationEngine
@@ -46,6 +48,7 @@ import javax.net.ssl.HttpsURLConnection
 import org.json.JSONObject
 import java.time.LocalDate
 import java.util.*
+import biko.pougala.coinz.R
 
 interface DownloadCompleteListener {
     fun downloadComplete(result: String)
@@ -66,6 +69,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private var rates = HashMap<String, Double>()
     private var username = ""
     private var coinCounter = 0 // this will be used to count how many coins were collected by the user
+    private var coinClock: TextView? = null
+
 
     private var firestore: FirebaseFirestore? = null
     private var firestoreCoins: DocumentReference? = null
@@ -86,6 +91,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
         val toast = Toast.makeText(applicationContext, text, duration)
         toast.show()
+
+        coinClock = findViewById(R.id.collect_text)
+        coinClock?.text = coinCounter.toString()
 
         Mapbox.getInstance(this, ACCESS_TOKEN)
 
@@ -307,31 +315,36 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
 
     private fun startChasing(location: Location) {
+
+        val factory = LayoutInflater.from(this@MainActivity)
+        val view = factory.inflate(R.layout.collect_new_coin, null)
+        val image: ImageView = view.findViewById(R.id.coin_icon)
+        val coinDescription: TextView = view.findViewById(R.id.collect_text)
+        image.setImageResource(R.drawable.coin)
+
         // whenever a new location is available, this function will compute the distance between the user and each coin.
         // if the distance is less than 500 meters, the user will have the possibility to collect it.
-
         for ((loc, content) in locations) {
             val distance = computeDistance(location, loc)
             if (distance<=0.25) { // the distance is in kilometers
                 val builder = AlertDialog.Builder(this@MainActivity)
-
-                // Link the AlertDialog to the new_coin_alert.xml layout file
-                val factory = LayoutInflater.from(this@MainActivity)
-                val view = factory.inflate(R.layout.new_coin_alert, null)
+                val collectCoinText = getString(R.string.foundCoin, content.get(0))
+                coinDescription.text = collectCoinText
                 builder.setView(view)
+                // Link the AlertDialog to the new_coin_alert.xml layout file
                 builder.setTitle("New Coin available!")
-                builder.setMessage("Would you like to collect " + content.get(0) + " ?")
+             //   builder.setMessage()
                 builder.setPositiveButton(R.string.collect){dialog, which ->
                     dialog.dismiss()
                     coinCounter++
+                    coinClock?.text = coinCounter.toString()
                     val coin = convertToGOLD(content.get(0))
                     val today = LocalDate.now().toString()
                     val newCoin = mapOf(
                         "gold_${coinCounter}" to coin
                      //    "username" to username
                     )
-                    Log.d(tag, "Today is ${today}")
-                    Log.d(tag, "The username is ${username}")
+
                     firestoreCoins = firestore?.collection("users-bank")?.document(username)?.collection("coins")?.document(today)
                     firestoreCoins?.set(newCoin, SetOptions.merge())
                         ?.addOnSuccessListener {
@@ -339,6 +352,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                             toast.show()
                         }
                         ?.addOnFailureListener { e -> Log.e(tag, e.message) }
+                }
+                builder.setNegativeButton("Discard"){dialog, which->
+                    dialog.dismiss()
+                    locations.remove(loc) // if the user discards the coin, it won't be proposed again
                 }
                 builder.show()
 
