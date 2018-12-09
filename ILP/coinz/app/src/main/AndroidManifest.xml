@@ -28,8 +28,16 @@
         <activity
                 android:name=".MainActivity"
                 android:label="@string/title_activity_login">
-
         </activity>
+        <activity
+                android:name=".BankActivity"
+                android:label="Bank"
+                android:theme="@style/AppTheme.NoActionBar">
+        </activity>
+
+        <meta-data
+                android:name="com.google.android.actions"
+                android:resource="@menu/coinhunt_menu"/>
     </application>
 
 </manifest>

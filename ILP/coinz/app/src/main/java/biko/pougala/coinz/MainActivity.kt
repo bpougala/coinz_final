@@ -1,6 +1,5 @@
 package biko.pougala.coinz
 
-import android.content.DialogInterface
 import android.content.Intent
 import android.location.Location
 import android.os.AsyncTask
@@ -8,8 +7,7 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
+import android.view.*
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -49,13 +47,13 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.util.*
 import biko.pougala.coinz.R
+import timber.log.Timber
+import java.lang.Double.sum
 
 interface DownloadCompleteListener {
     fun downloadComplete(result: String)
 }
 class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineListener, PermissionsListener, DownloadCompleteListener {
-
-
 
 
     private val tag = "MainActivity"
@@ -70,15 +68,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private var username = ""
     private var coinCounter = 0 // this will be used to count how many coins were collected by the user
     private var coinClock: TextView? = null
-
+    private var bankButton: Button? = null
 
     private var firestore: FirebaseFirestore? = null
     private var firestoreCoins: DocumentReference? = null
+
 
     private lateinit var originLocation: Location
     private lateinit var permissionsManager: PermissionsManager
     private lateinit var locationEngine: LocationEngine
     private lateinit var locationLayerPlugin: LocationLayerPlugin
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -91,9 +91,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
         val toast = Toast.makeText(applicationContext, text, duration)
         toast.show()
-
-        coinClock = findViewById(R.id.collect_text)
-        coinClock?.text = coinCounter.toString()
+        val coinCountText = getString(R.string.coinValue, coinCounter)
+        coinClock = findViewById(R.id.coinCounter)
+        coinClock?.text = coinCountText
 
         Mapbox.getInstance(this, ACCESS_TOKEN)
 
@@ -102,6 +102,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync(this)
+
+       // bankButton = findViewById(R.id.)
+
+      //  bankButton = findViewById(R.id.bankButton)
+       /** val actionBar = supportActionBar
+        actionBar?.setDisplayShowHomeEnabled(false)
+        actionBar?.setDisplayShowCustomEnabled(true)
+        actionBar?.setDisplayShowTitleEnabled(false)
+        actionBar?.setCustomView(bankButton)**/
+
+        // People could cheat and go well above the 25-coin per day limit by just restarting the app. Therefore, the starting point
+        // should not always be zero but the number of coins collected that day ; if no coin has been collected, then it will
+        // be zero. Otherwise, start from that number.
 
 
         commenceButton?.setOnClickListener {
@@ -117,13 +130,63 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         firestore = FirebaseFirestore.getInstance()
         val settings = FirebaseFirestoreSettings.Builder().setTimestampsInSnapshotsEnabled(true).build()
         firestore?.firestoreSettings = settings
+
+        val today = LocalDate.now().toString()
+        val coinsRef = firestore?.collection("users-bank")?.document(username)?.collection("coins")
+            ?.document(today)
+
+        coinsRef?.get()?.addOnCompleteListener(this) { task ->
+            if (task.isSuccessful) {
+                val coins = task.result?.data?.count()
+                if(coins != null) {
+                    coinCounter = coins.toInt() -1
+
+                } else {
+                    coinCounter = 0
+                }
+                coinClock?.text = getString(R.string.coinValue, coinCounter)
+
+            }
+        }
+
+        Log.d(tag, "View is done loading")
+
+
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        val inflater: MenuInflater = menuInflater
+        inflater.inflate(R.menu.coinhunt_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+
+        return when (item.itemId) {
+            R.id.bank_action -> {
+                openBankAccount()
+                true
+            } else -> {
+                return super.onOptionsItemSelected(item)
+            }
+        }
+
+    }
+
+    fun openBankAccount() {
+        // start a BankActivity
+        val intent = Intent(this@MainActivity, BankActivity::class.java)
+        intent.putExtra("coinCounter", coinCounter)
+        intent.putExtra("username", username)
+
+        startActivity(intent)
+    }
 
     override fun onMapReady(mapboxMap: MapboxMap?) {
         if (mapboxMap == null) {
             Log.d(tag, "[onMapReady] mapboxMap is null")
         } else {
+            Log.d(tag, "Just about to load Map")
             map = mapboxMap
             map?.uiSettings?.isCompassEnabled = true
             map?.uiSettings?.isZoomControlsEnabled = true
@@ -137,13 +200,29 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             // Download the current day's map
             val currentDate = Calendar.getInstance()
             val year = currentDate.get(Calendar.YEAR)
-            val month = currentDate.get(Calendar.MONTH)
+            val month = currentDate.get(Calendar.MONTH) + 1 // Months are indexed on 0 not 1
             val day = currentDate.get(Calendar.DAY_OF_MONTH)
-            val address = "https://homepages.inf.ed.ac.uk/stg/coinz/$year/$month/$day/coinzmap.geojson"
+            var monthCorrect = month.toString()
+            var dayCorrect = day.toString()
 
+            // the coins maps database has a leading zero for month and day. We thus need to take it into account
+            Log.d(tag, "Current month is $month")
+            if(month+1 < 10) {
+                val monthString = month.toString()
+                monthCorrect = "0$monthString"
+            }
+
+            if (day < 10) {
+                val dayString = day.toString()
+                dayCorrect = "0$dayCorrect"
+            }
+            val address = "https://homepages.inf.ed.ac.uk/stg/coinz/$year/$monthCorrect/$dayCorrect/coinzmap.geojson"
+            Log.d(tag, "The address is $address")
 
 
             DownloadFileTask(this@MainActivity).execute(address)
+
+            Log.d(tag, "Map is done downloading")
 
         }
     }
@@ -324,45 +403,60 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
         // whenever a new location is available, this function will compute the distance between the user and each coin.
         // if the distance is less than 500 meters, the user will have the possibility to collect it.
-        for ((loc, content) in locations) {
-            val distance = computeDistance(location, loc)
-            if (distance<=0.25) { // the distance is in kilometers
-                val builder = AlertDialog.Builder(this@MainActivity)
-                val collectCoinText = getString(R.string.foundCoin, content.get(0))
-                coinDescription.text = collectCoinText
-                builder.setView(view)
-                // Link the AlertDialog to the new_coin_alert.xml layout file
-                builder.setTitle("New Coin available!")
-             //   builder.setMessage()
-                builder.setPositiveButton(R.string.collect){dialog, which ->
-                    dialog.dismiss()
-                    coinCounter++
-                    coinClock?.text = coinCounter.toString()
-                    val coin = convertToGOLD(content.get(0))
-                    val today = LocalDate.now().toString()
-                    val newCoin = mapOf(
-                        "gold_${coinCounter}" to coin
-                     //    "username" to username
-                    )
+        if(coinCounter < 26) {
+            for ((loc, content) in locations) {
 
-                    firestoreCoins = firestore?.collection("users-bank")?.document(username)?.collection("coins")?.document(today)
-                    firestoreCoins?.set(newCoin, SetOptions.merge())
-                        ?.addOnSuccessListener {
-                            val toast = Toast.makeText(applicationContext, "Coin collected", Toast.LENGTH_SHORT)
-                            toast.show()
-                        }
-                        ?.addOnFailureListener { e -> Log.e(tag, e.message) }
+                val distance = computeDistance(location, loc)
+                if (distance <= 0.25) { // the distance is in kilometers
+                    val builder = AlertDialog.Builder(this@MainActivity)
+                    val collectCoinText = getString(R.string.foundCoin, content.get(0))
+                    coinDescription.text = collectCoinText
+                    builder.setView(view)
+                    // Link the AlertDialog to the new_coin_alert.xml layout file
+                    builder.setTitle("New Coin available!")
+                    //   builder.setMessage()
+                    builder.setPositiveButton(R.string.collect) { dialog, which ->
+                        dialog.dismiss()
+                        coinCounter++
+                        val coinCountText = getString(R.string.coinValue, coinCounter)
+                        coinClock?.text = coinCountText
+                        val coin = convertToGOLD(content.get(0))
+                        val today = LocalDate.now().toString()
+                        val newCoin = mapOf(
+                            "gold_${coinCounter}" to coin,
+                            //    "username" to username
+                                 "totalCoins" to coinCounter
+                        )
+
+                        firestoreCoins = firestore?.collection("users-bank")?.document(username)?.collection("coins")
+                            ?.document(today)
+                        firestoreCoins?.set(newCoin, SetOptions.merge())
+                            ?.addOnSuccessListener {
+                                val toast = Toast.makeText(applicationContext, "Coin collected", Toast.LENGTH_SHORT)
+                                toast.show()
+                            }
+                            ?.addOnFailureListener { e -> Log.e(tag, e.message) }
+                    }
+                    builder.setNegativeButton("Discard") { dialog, which ->
+                        dialog.dismiss()
+                        locations.remove(loc) // if the user discards the coin, it won't be proposed again
+                    }
+                    builder.show()
+
+
+                    break
+
                 }
-                builder.setNegativeButton("Discard"){dialog, which->
-                    dialog.dismiss()
-                    locations.remove(loc) // if the user discards the coin, it won't be proposed again
-                }
-                builder.show()
-
-
-                break
+            }
+        } else {
+            val builder = AlertDialog.Builder(this@MainActivity)
+            builder.setTitle("You reached your daily limit")
+            builder.setMessage("Only 25 coins can be collected on a daily basis. Please try again tomorrow.")
+            builder.setPositiveButton("OK") { dialog, which ->
+                dialog.dismiss()
 
             }
+            builder.show()
         }
     }
 

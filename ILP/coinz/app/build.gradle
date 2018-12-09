@@ -54,5 +54,7 @@ dependencies {
 
     implementation 'android.arch.core:runtime:1.1.1'
     implementation 'android.arch.core:common:1.1.1'
-}
 
+    // we use public library GraphView
+    implementation 'com.jjoe64:graphview:4.2.2'
+}

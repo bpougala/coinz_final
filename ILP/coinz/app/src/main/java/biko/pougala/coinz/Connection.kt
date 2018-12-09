@@ -187,14 +187,12 @@ class Connection : AppCompatActivity() {
             firestoreCoinz?.get()?.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val details = task.result
-                    Log.d(tag, "details = $details")
 
                 }
             }
             val intent = Intent(this@Connection, MainActivity::class.java)
             intent.putExtra("username", username)
             Timber.d("username = $username")
-            Log.d(tag, "username = $username")
 
             startActivity(intent)
 

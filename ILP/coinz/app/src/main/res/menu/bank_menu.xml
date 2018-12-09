@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:title="@string/bank"
+        android:id="@+id/bank_menu"
+     />
+
+
+    <item
+        android:title="@string/send_to_friends"
+        android:id="@+id/send"
+        />
+
+    <item
+        android:title="@string/scoreboard"
+        android:id="@+id/leaderboard"
+        />
+
+
+
+</menu>
