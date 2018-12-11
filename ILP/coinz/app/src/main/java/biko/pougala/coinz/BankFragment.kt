@@ -65,7 +65,9 @@ class BankFragment: Fragment() {
         var i = 1
         // Iterate over all documents in the bank
         Log.d(tag_new, "The username is $username")
-        var firestoreCoins = firestore?.collection("users-bank")?.document(username)?.collection("coins")?.get()?.addOnSuccessListener {
+        val coinsRef  = firestore?.collection("users-bank")?.document(username)?.collection("coins")
+
+        coinsRef?.get()?.addOnSuccessListener {
             result ->
             for (document in result) {
                 // In order to only get dates within a specific timeframe (starting with the current week-, we convert all dates to timestamps

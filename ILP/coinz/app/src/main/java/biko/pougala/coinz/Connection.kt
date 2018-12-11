@@ -108,6 +108,10 @@ class Connection : AppCompatActivity() {
             mAuth?.createUserWithEmailAndPassword(email, password)
                 ?.addOnCompleteListener(this) { task ->
                     if(task.isSuccessful) {
+                        // set global variable to be used everywhere in the app
+                        coins.username = username
+
+
                         firestoreCoinz = firestore?.collection("users-bank")
                             ?.document(username)
 
@@ -149,7 +153,7 @@ class Connection : AppCompatActivity() {
             firestoreCoinz?.get()?.addOnCompleteListener(this) { task ->
                 if(task.isSuccessful) {
                     val document = task.result
-                    Log.d(tag, "username from result = $username")
+                    coins.username = username
                     if(document != null) {
                         val email = document.get("email").toString()
                         Log.d(tag,"email= $email")

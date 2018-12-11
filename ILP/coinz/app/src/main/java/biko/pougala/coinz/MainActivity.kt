@@ -567,15 +567,8 @@ class coins: Application() {
 
     companion object {
         var coinCounter = 0
+        var username = ""
     }
 
-    private fun getCoinCounter(): Int {
-        return coinCounter
-    }
 
-    private fun setCoinCounter(coins: Int): Boolean {
-        coinCounter = coins
-
-        return true
-    }
 }
