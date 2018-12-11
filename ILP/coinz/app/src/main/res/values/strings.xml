@@ -24,6 +24,14 @@
     <string name="coinsWeek">Total coins this week: %1d</string>
     <string name="averageWeekly">Average coins per week</string>
     <string name="title_activity_bank">BankActivity</string>
-    <string name="send_to_friends">Send To Friends</string>
+    <string name="send_to_friends">Coins you can send to your friends: %1$d</string>
     <string name="scoreboard">Scoreboard</string>
+    <string name="title_activity_bank_tabbed">BankTabbed</string>
+    <string name="tab_text_1">Tab 1</string>
+    <string name="tab_text_2">Tab 2</string>
+    <string name="tab_text_3">Tab 3</string>
+    <string name="action_settings">Settings</string>
+    <string name="section_format">Hello World from section: %1$d</string>
+    <string name="new_friend">Add a friend</string>
+    <string name="new_friend_message">You don\'t have any friends at the moment. Click below to add one now.</string>
 </resources>

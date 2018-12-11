@@ -1,5 +1,6 @@
 package biko.pougala.coinz
 
+import android.app.Application
 import android.content.Intent
 import android.location.Location
 import android.os.AsyncTask
@@ -84,6 +85,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val coins = coins
         username = intent.getStringExtra("username")
 
         val text = "Hi, ${username}!"
@@ -148,6 +151,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
             }
         }
+
+        coins.coinCounter = coinCounter
 
         Log.d(tag, "View is done loading")
 
@@ -418,6 +423,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                     builder.setPositiveButton(R.string.collect) { dialog, which ->
                         dialog.dismiss()
                         coinCounter++
+                        coins.coinCounter = coinCounter
                         val coinCountText = getString(R.string.coinValue, coinCounter)
                         coinClock?.text = coinCountText
                         val coin = convertToGOLD(content.get(0))
@@ -552,4 +558,24 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     }
 
 
+}
+
+class coins: Application() {
+
+    // this class extending android.app.Application is used to have access to the value of coinCounter across all activities
+    // regardless of the Android lifecycle status
+
+    companion object {
+        var coinCounter = 0
+    }
+
+    private fun getCoinCounter(): Int {
+        return coinCounter
+    }
+
+    private fun setCoinCounter(coins: Int): Boolean {
+        coinCounter = coins
+
+        return true
+    }
 }

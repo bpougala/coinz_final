@@ -6,9 +6,5 @@
               android:layout_width="match_parent" xmlns:app="http://schemas.android.com/apk/res-auto">
 
 
-    <TextView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:text="@string/send_to_friends"
-            android:gravity="center_vertical|center_horizontal"/>
+
 </LinearLayout>

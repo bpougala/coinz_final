@@ -33,7 +33,7 @@
 
     <TextView
             android:text="0"
-            android:textSize="16dp"
+            android:textSize="16sp"
             android:layout_width="wrap_content"
             android:layout_height="30dp"
             app:fontFamily="@font/rubik_medium"
