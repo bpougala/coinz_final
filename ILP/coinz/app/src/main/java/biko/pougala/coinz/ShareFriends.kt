@@ -1,5 +1,7 @@
 package biko.pougala.coinz
 
+import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.LayoutInflater
@@ -8,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Button
 import android.widget.TableLayout
+import android.widget.TableRow
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
@@ -31,6 +34,11 @@ class ShareFriends: Fragment() {
         add_friend_message = view.findViewById(R.id.add_friend_message)
         friendsTable = view.findViewById(R.id.friends_table)
 
+        // prepare the view for the AlertDialog coming on line 77 to confirm the emission of coins
+        val factory = LayoutInflater.from(activity)
+        val alertView = factory.inflate(R.layout.send_coin_friend, null)
+
+
         // First we'll check in the database if the user has added friends to the game. Therefore the button and message
         // need to be invisible when the app is first loaded
         add_friend_button?.visibility = View.GONE
@@ -47,10 +55,50 @@ class ShareFriends: Fragment() {
 
         firestore?.firestoreSettings = settings
 
-        val friendsRef = firestore?.collection("users-bank")?.document()
+        val friendsRef = firestore?.collection("users-bank")?.document("friends")
+        friendsRef?.get()?.addOnSuccessListener{ document ->
+            if (document != null) {
+                //TODO: populate the TableView with the list of friends
+                friendsTable?.visibility = View.VISIBLE
+                val friends = document.data?.toMap()!!
+                for ((user, name) in friends) {
+                    val friendsRow: TableRow = TableRow(activity)
+                    friendsRow.layoutParams = TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT)
+                    val friendName: TextView = TextView(activity)
+                    friendName.text = name.toString()
+
+                    val friendButton: Button = Button(activity)
+                    friendButton.text = getString(R.string.send_friend)
+                    friendsRow.addView(friendName)
+                    friendsRow.addView(friendButton)
+                    friendsTable?.addView(friendsRow)
+
+                    friendButton.setOnClickListener {
+                        val builder = AlertDialog.Builder(activity)
+                        builder.setView(alertView)
+                        builder.setPositiveButton("Confirm") { dialog, which ->
+                            //TODO send coins to the user selected on Firestore
+
+                        }
+
+                    }
+                }
+
+            } else {
+                add_friend_button?.visibility = View.VISIBLE
+                add_friend_message?.visibility = View.VISIBLE
+            }
+        }
+
+        add_friend_button?.setOnClickListener {
+            val intent = Intent(activity, AddFriends::class.java)
+            startActivity(intent)
+        }
         return view
 
     }
+
+
 
     companion object {
         fun newInstance(): ShareFriends = ShareFriends()
