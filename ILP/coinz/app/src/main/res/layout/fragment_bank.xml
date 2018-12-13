@@ -8,37 +8,37 @@
 
 
     <TextView
-            android:layout_width="383dp"
-            android:layout_height="61dp"
-            android:textSize="20sp"
-            app:fontFamily="@font/rubik_medium"
-            android:id="@+id/total_weekly"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintHorizontal_bias="1.0"
-            app:layout_constraintBottom_toTopOf="@+id/graphWeekly"/>
+android:layout_width="383dp"
+android:layout_height="61dp"
+android:textSize="20sp"
+app:fontFamily="@font/rubik_medium"
+android:id="@+id/total_weekly"
+app:layout_constraintEnd_toEndOf="parent"
+app:layout_constraintStart_toStartOf="parent"
+app:layout_constraintHorizontal_bias="1.0"
+app:layout_constraintBottom_toTopOf="@+id/graphWeekly"/>
 
 
-    <com.jjoe64.graphview.GraphView
-            android:id="@+id/graphWeekly"
-            android:layout_width="match_parent"
-            android:layout_height="215dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@id/total_weekly"
-            app:layout_constraintHorizontal_bias="0.0" android:layout_marginBottom="224dp"/>
+<com.jjoe64.graphview.GraphView
+android:id="@+id/graphWeekly"
+android:layout_width="match_parent"
+android:layout_height="215dp"
+app:layout_constraintBottom_toBottomOf="parent"
+app:layout_constraintEnd_toEndOf="parent"
+app:layout_constraintStart_toStartOf="@id/total_weekly"
+app:layout_constraintHorizontal_bias="0.0" android:layout_marginBottom="224dp"/>
 
 
-    <android.support.v4.widget.DrawerLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:id="@+id/container"
-    />
+<android.support.v4.widget.DrawerLayout
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:id="@+id/container"
+/>
 
-    <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" tools:layout_editor_absoluteY="27dp"
-            tools:layout_editor_absoluteX="0dp" android:id="@+id/frameLayout">
+<FrameLayout
+android:layout_width="match_parent"
+android:layout_height="match_parent" tools:layout_editor_absoluteY="27dp"
+tools:layout_editor_absoluteX="0dp" android:id="@+id/frameLayout">
 
-    </FrameLayout>
-</android.support.constraint.ConstraintLayout>
+</FrameLayout>
+        </android.support.constraint.ConstraintLayout>

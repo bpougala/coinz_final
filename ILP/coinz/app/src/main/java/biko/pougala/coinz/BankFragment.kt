@@ -33,17 +33,14 @@ class BankFragment: Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         super.onCreateView(inflater, container, savedInstanceState)
-        var username = ""
+        val username = coins.username
         val view = inflater.inflate(R.layout.fragment_bank, container, false)
         headline = view.findViewById(R.id.total_weekly)
         val coinCounter = coins.coinCounter
         headline?.text = getString(R.string.coinsBank, coinCounter)
         values = mutableListOf()
         dates = mutableListOf()
-        val string = arguments?.getString("username")
-        if (string != null) {
-            username = string
-        }
+
 
         firestore = FirebaseFirestore.getInstance()
         val settings = FirebaseFirestoreSettings.Builder()

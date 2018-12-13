@@ -49,7 +49,7 @@ class BankActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bank)
         //coinCount = intent.getIntExtra("coinCounter", 0)
-        username = intent.getStringExtra("username")
+        username = coins.username
 
         initToolbar()
         val tabLayout: TabLayout = findViewById(R.id.tab_layout)

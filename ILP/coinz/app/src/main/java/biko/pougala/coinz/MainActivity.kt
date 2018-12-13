@@ -1,7 +1,9 @@
 package biko.pougala.coinz
 
 import android.app.Application
+import android.arch.lifecycle.Lifecycle
 import android.content.Intent
+import android.graphics.Color
 import android.location.Location
 import android.os.AsyncTask
 import android.support.v7.app.AppCompatActivity
@@ -48,6 +50,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.util.*
 import biko.pougala.coinz.R
+import com.google.protobuf.Internal
 import timber.log.Timber
 import java.lang.Double.sum
 
@@ -79,6 +82,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private lateinit var permissionsManager: PermissionsManager
     private lateinit var locationEngine: LocationEngine
     private lateinit var locationLayerPlugin: LocationLayerPlugin
+    var spare = 0 // counter for the spare change
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -155,6 +160,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         coins.coinCounter = coinCounter
 
         Log.d(tag, "View is done loading")
+
 
 
     }
@@ -289,6 +295,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                     cameraMode = CameraMode.TRACKING
                     renderMode = RenderMode.NORMAL
                 }
+                val lifecycle_ = lifecycle
+                lifecycle_.addObserver(locationLayerPlugin)
             }
         }
     }
@@ -406,9 +414,22 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         val coinDescription: TextView = view.findViewById(R.id.collect_text)
         image.setImageResource(R.drawable.coin)
 
+        if(coinCounter == 25) {
+            val builder = AlertDialog.Builder(this@MainActivity)
+            builder.setTitle("You reached your daily limit")
+            builder.setMessage("Only 25 coins can be banked on a daily basis. Your spare change will be disposed when you close the app.")
+            builder.setPositiveButton("OK") { dialog, which ->
+                dialog.dismiss()
+
+            }
+            builder.show()
+        }
+
+
+
         // whenever a new location is available, this function will compute the distance between the user and each coin.
         // if the distance is less than 500 meters, the user will have the possibility to collect it.
-        if(coinCounter < 26) {
+        if(coinCounter < 25) {
             for ((loc, content) in locations) {
 
                 val distance = computeDistance(location, loc)
@@ -455,14 +476,42 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 }
             }
         } else {
-            val builder = AlertDialog.Builder(this@MainActivity)
-            builder.setTitle("You reached your daily limit")
-            builder.setMessage("Only 25 coins can be collected on a daily basis. Please try again tomorrow.")
-            builder.setPositiveButton("OK") { dialog, which ->
-                dialog.dismiss()
+            // the spare change is saved while the game is playing but cannot be banked and is lost if the user closes the app
+            coinClock?.setTextColor(Color.RED)
+            for ((loc, content) in locations) {
 
+                val distance = computeDistance(location, loc)
+                if (distance <= 0.25) { // the distance is in kilometers
+                    val builder = AlertDialog.Builder(this@MainActivity)
+                    val collectCoinText = getString(R.string.foundCoin, content.get(0))
+                    coinDescription.text = collectCoinText
+                    builder.setView(view)
+                    // Link the AlertDialog to the new_coin_alert.xml layout file
+                    builder.setTitle("New Coin available!")
+                    //   builder.setMessage()
+                    builder.setPositiveButton(R.string.collect) { dialog, which ->
+                        dialog.dismiss()
+                        coinCounter++
+                        coins.coinCounter = coinCounter
+                        val coinCountText = getString(R.string.coinValue, coinCounter)
+                        coinClock?.text = coinCountText
+                        val coin = convertToGOLD(content.get(0))
+                        coins.spareChange.add(coin)
+                        spare++
+
+
+                    }
+                    builder.setNegativeButton("Discard") { dialog, which ->
+                        dialog.dismiss()
+                        locations.remove(loc) // if the user discards the coin, it won't be proposed again
+                    }
+                    builder.show()
+
+
+                    break
+
+                }
             }
-            builder.show()
         }
     }
 
@@ -568,6 +617,9 @@ class coins: Application() {
     companion object {
         var coinCounter = 0
         var username = ""
+
+        // the spare change, converted to GOLD, will be stored in this global List
+        var spareChange = mutableListOf<Double>()
     }
 
 

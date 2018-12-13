@@ -8,7 +8,7 @@
 
 
     <item
-        android:title="@string/send_to_friends"
+        android:title="@string/send_friend"
         android:id="@+id/send"
         />
 
