@@ -6,7 +6,6 @@
     <TableRow
             android:layout_width="383dp"
             android:layout_height="56dp"
-            android:id="@+id/new_row"
             app:fontFamily="@font/rubik_medium"
             app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -21,6 +20,9 @@
                 android:text="@string/send_friend"
                 android:layout_width="wrap_content"
                 app:fontFamily="@font/rubik_medium"
-                android:layout_height="wrap_content" android:id="@+id/send_button_friend"/>
+                android:layout_height="wrap_content"
+                android:id="@+id/send_button_friend"/>
+
+
     </TableRow>
 </android.support.constraint.ConstraintLayout>

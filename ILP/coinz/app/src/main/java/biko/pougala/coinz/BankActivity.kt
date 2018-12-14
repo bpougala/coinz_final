@@ -2,6 +2,8 @@
 
 package biko.pougala.coinz
 
+import android.app.AlertDialog
+import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import android.support.design.widget.TabLayout
@@ -86,6 +88,28 @@ class BankActivity : AppCompatActivity() {
 
 
 
+    }
+
+
+    fun sendCoinListener(v: View) {
+        Log.d(tag, "The button has been clicked")
+        // prepare the view for the AlertDialog to confirm the emission of coins
+
+        val factory = LayoutInflater.from(this@BankActivity)
+
+        val alertView = factory.inflate(R.layout.send_coin_friend, null)
+
+        val builder = AlertDialog.Builder(this@BankActivity)
+        builder.setView(alertView)
+        builder.setPositiveButton("Confirm") { dialog, which ->
+            //TODO send coins to the user selected on Firestore
+
+        }
+    }
+
+    fun onClick(v : View) {
+        val strTag = v.getTag().toString()
+        Log.d(tag, "Button clicked")
     }
 
     override fun onStart() {

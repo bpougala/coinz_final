@@ -17,9 +17,10 @@
     <TextView
             android:id="@+id/collect_text"
             app:fontFamily="@font/rubik_medium"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_below="@id/coin_icon"/>
+            android:layout_width="352dp"
+            android:layout_height="46dp"
+            android:layout_marginTop="50dp"
+            android:layout_below="@id/coin_icon" android:layout_alignParentStart="true"
+            android:layout_marginStart="16dp"/>
 
 </RelativeLayout>

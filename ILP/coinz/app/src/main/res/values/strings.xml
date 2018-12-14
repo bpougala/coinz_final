@@ -33,8 +33,9 @@
     <string name="section_format">Hello World from section: %1$d</string>
     <string name="new_friend">Add a friend</string>
     <string name="send_coins_message">Total spare change you can send to friends: %1d</string>
-    <string name="send_friend">Send to Friend</string>
+    <string name="send_friend">Send coins</string>
     <string name="new_friend_message">You don\'t have any friends at the moment. Click below to add one now.</string>
+    <string name="friend_name">Enter username</string>
     <string name="confirmation_send">Are you sure? This action is irreversible.</string>
     <string name="instructions_send">Select how many coins to send and press OK.</string>
 </resources>

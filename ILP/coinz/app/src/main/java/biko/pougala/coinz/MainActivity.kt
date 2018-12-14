@@ -157,9 +157,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             }
         }
 
+        firestoreCoins = firestore?.collection("users-bank")?.document(username)?.collection("coins")
+            ?.document(today)
+
         coins.coinCounter = coinCounter
 
         Log.d(tag, "View is done loading")
+
+        realtimeUpdateListener()
 
 
 
@@ -455,8 +460,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                                  "totalCoins" to coinCounter
                         )
 
-                        firestoreCoins = firestore?.collection("users-bank")?.document(username)?.collection("coins")
-                            ?.document(today)
+
                         firestoreCoins?.set(newCoin, SetOptions.merge())
                             ?.addOnSuccessListener {
                                 val toast = Toast.makeText(applicationContext, "Coin collected", Toast.LENGTH_SHORT)
@@ -566,6 +570,27 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         // from StakOverFlow
         return deg * (Math.PI/180)
     }
+
+    private fun realtimeUpdateListener() {
+        Log.d(tag, "Function gets called")
+        firestoreCoins?.addSnapshotListener { documentSnapshot, e ->
+            when {
+                e != null -> Log.e(tag, e.message)
+                documentSnapshot != null && documentSnapshot.exists() -> {
+                    with(documentSnapshot) {
+                        // we'll just create a Toast announcing a new Coin has been added
+                        Log.d(tag, "coin received")
+                        val text = "New coin received!"
+                        val duration = Toast.LENGTH_LONG
+
+                        val toast = Toast.makeText(applicationContext, text, duration)
+                        toast.show()
+
+                    }
+                }
+            }
+        }
+    }
     class DownloadFileTask(private val caller : DownloadCompleteListener) : AsyncTask<String, Void, String>() {
 
 
@@ -619,7 +644,7 @@ class coins: Application() {
         var username = ""
 
         // the spare change, converted to GOLD, will be stored in this global List
-        var spareChange = mutableListOf<Double>()
+        var spareChange : Queue<Double> = ArrayDeque<Double>()
     }
 
 
