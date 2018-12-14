@@ -102,7 +102,7 @@ class ShareFriends: Fragment() {
             val newCoin = mapOf(
                 "gold_${friendTotalCoin}" to coins.spareChange.remove(),
                 //    "username" to username
-                "totalCoins" to friendTotalCoin
+                "totalCoins" to friendTotalCoin+1
             )
             otherCoinsRef?.set(newCoin, SetOptions.merge())?.addOnCompleteListener {
                 val toast = Toast.makeText(activity, "Coin sent!", Toast.LENGTH_LONG)

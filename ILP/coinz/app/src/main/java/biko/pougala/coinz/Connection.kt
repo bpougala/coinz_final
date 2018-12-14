@@ -194,9 +194,7 @@ class Connection : AppCompatActivity() {
 
                 }
             }
-            val intent = Intent(this@Connection, MainActivity::class.java)
-            intent.putExtra("username", username)
-            Timber.d("username = $username")
+            val intent = Intent(this@Connection, SelectMenu::class.java)
 
             startActivity(intent)
 

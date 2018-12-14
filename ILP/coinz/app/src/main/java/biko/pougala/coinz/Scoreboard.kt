@@ -6,9 +6,11 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TableRow
+import android.widget.TableLayout
+import android.widget.TextView
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import org.jetbrains.anko.find
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.*
@@ -17,17 +19,25 @@ import kotlin.collections.HashMap
 class Scoreboard: Fragment() {
 
     private var firestoreFriends: FirebaseFirestore? = null
+    private var firestoreInfo: FirebaseFirestore? = null
     private val tag_ = "Scoreboard"
-    private var scores = HashMap<String, Int>()
+    private var scores = HashMap<Int, String>()
     private var times = HashMap<String, Int>()
+    private var tableFriends: TableLayout? = null
+    private var firestore : FirebaseFirestore? = null
+    private var mapFriends: MutableMap<Int, Int> = mutableMapOf()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         super.onCreateView(inflater, container, savedInstanceState)
         val view = inflater.inflate(R.layout.scoreboard, container, false)
 
         firestoreFriends = FirebaseFirestore.getInstance()
+
         val settings = FirebaseFirestoreSettings.Builder().setTimestampsInSnapshotsEnabled(true).build()
         firestoreFriends?.firestoreSettings = settings
+        tableFriends = view.findViewById(R.id.friends_table)
+        scores = hashMapOf()
+        times = hashMapOf()
 
         val username = coins.username
         val friendsRef =
@@ -41,20 +51,48 @@ class Scoreboard: Fragment() {
                 val friendsList: List<String> = friends?.get("username") as List<String>
                 if (friendsList != null) {
                     for (friend in friendsList) {
-                        numberFriends++
+
+                        getCoins(friendsList, object: myCallBack {
+                            override fun onCallback(value: Map<Int, Int>) {
+                                Log.d(tag_, "the map is ${value.toString()}")
+                            }
+                        })
+
+/*
                         val totalCoins = getCoins(friend)
-                        scores.put(friend, totalCoins.get(0))
-                        times.put(friend, totalCoins.get(1))
-                        val tableView = inflater.inflate(R.layout.friends_table, container, false)
+                        val coinCounter = totalCoins.keys
+                        val time = totalCoins.values
+
+                        Log.d(tag_, "The coins that are returned are {$totalCoins.toString()}")
+                        scores.put(coinCounter.first(), friend)
+                        times.put(friend, time.first())*/
                     }
 
-                    val sortedScores = scores.toList().sortedBy { (key, value) -> value }.toMap()
+                    designTable(mapFriends)
 
-                    for (score in sortedScores) {
-                        
-                    }
+                    Log.d(tag_, "Here is the final map: ${mapFriends.toString()}")
+
+                    //val sortedScores = scores.toSortedMap()
+
+                  /*  for ((score, name) in sortedScores) {
+                        //TODO: add TableRow
+                        val friendsRow = inflater.inflate(R.layout.friends_table, container, false)
+                        val friendName: TextView = friendsRow.findViewById(R.id.username_friend)
+                        val friendCoins: TextView = friendsRow.findViewById(R.id.coinCounterFriend)
+                        val friendTime: TextView = friendsRow.findViewById(R.id.averageTime)
+
+                        val time = times.get(name)
+                        friendName.text = name
+                        friendTime.text = time.toString()
+                        friendCoins.text = score.toString()
+
+                        tableFriends?.addView(friendsRow)
+
+                    }*/
                 }
             }
+
+
         }
 
         return view
@@ -62,9 +100,12 @@ class Scoreboard: Fragment() {
 
 
 
-    private fun getCoins(username: String): Array<Int> {
+    private fun getCoins(usernames: List<String>, myCallBack: myCallBack) {
+
+
         val today = LocalDate.now().toString()
-        val coinsRef = firestoreFriends?.collection("users-bank")?.document(username)?.collection("coins")
+
+
 
         // We'll get the start of the current week
         val cal = Calendar.getInstance()
@@ -76,34 +117,58 @@ class Scoreboard: Fragment() {
         val startOfWeek = cal.timeInMillis
         val startAsDate = cal.time.toString()
 
-        var coinCounter = 0
-        var totalTime = 0
+        firestore = FirebaseFirestore.getInstance()
+        val settings = FirebaseFirestoreSettings.Builder().setTimestampsInSnapshotsEnabled(true).build()
+        firestore?.firestoreSettings = settings
 
-        coinsRef?.get()?.addOnSuccessListener { result ->
-            for (document in result) {
-                // In order to only get dates within a specific timeframe (starting with the current week-, we convert all dates to timestamps
-                // and do simple numeric comparisons
+        for (username in usernames) {
+
+            val coinsRef = firestore?.collection("users-bank")?.document(username)?.collection("coins")
 
 
-                val id = document.id
-                val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.UK)
-                val date = formatter.parse(id)
-                val timeStampDay = date.time
-                if (timeStampDay >= startOfWeek) { // if the date is withing a 7-day time frame
+            var totalCoins = 0
+            var duration = 0
 
-                    val number = document.get("totalCoins").toString().toInt()
-                    coinCounter += number
-                    totalTime += document.get("duration").toString().toInt()
+
+            coinsRef?.get()?.addOnCompleteListener { task ->
+
+                if (task.isSuccessful) {
+                    val documents = task.result?.documents!!
+                    for (document in documents) {
+                        val id = document.id
+                        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.UK)
+                        val date = formatter.parse(id)
+                        val timeStampDay = date.time
+                        if (timeStampDay >= startOfWeek) { // if the date is withing a 7-day time frame
+
+                            totalCoins += document.get("totalCoins").toString().toInt()
+                            duration += document.get("duration").toString().toInt()
+
+
+                        }
+                    }
+                    mapFriends.put(totalCoins, duration)
+
+                } else {
 
                 }
+
+
             }
-
-            totalTime = totalTime / coinCounter // we want the average duration
-            var totalCoins : IntArray = intArrayOf(coinCounter, totalTime)
-
-
         }
+        myCallBack.onCallback(mapFriends)
+
+
     }
+
+    private fun designTable(map: MutableMap<Int, Int>) {
+
+        Log.d(tag, "the map is ${map.toString()}")
+
+
+    }
+
+
 
     companion object {
         fun newInstance(): Scoreboard = Scoreboard()

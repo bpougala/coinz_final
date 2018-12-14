@@ -8,6 +8,7 @@ import android.location.Location
 import android.os.AsyncTask
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.support.v7.app.AlertDialog
 import android.util.Log
 import android.view.*
@@ -51,8 +52,10 @@ import java.time.LocalDate
 import java.util.*
 import biko.pougala.coinz.R
 import com.google.protobuf.Internal
+import org.jetbrains.anko.find
 import timber.log.Timber
 import java.lang.Double.sum
+import java.lang.Math.abs
 
 interface DownloadCompleteListener {
     fun downloadComplete(result: String)
@@ -77,12 +80,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private var firestore: FirebaseFirestore? = null
     private var firestoreCoins: DocumentReference? = null
 
+    private var tickTock: CountDownTimer? = null
+    private var tickTockTextView: TextView? = null
+
 
     private lateinit var originLocation: Location
     private lateinit var permissionsManager: PermissionsManager
     private lateinit var locationEngine: LocationEngine
     private lateinit var locationLayerPlugin: LocationLayerPlugin
     var spare = 0 // counter for the spare change
+
+    private lateinit var timer: CountDownTimer
+    private var timerLengthSeconds = 0L // we take here the Long values
+    private var secondsRemaining = 0L
 
 
 
@@ -92,7 +102,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         setContentView(R.layout.activity_main)
 
         val coins = coins
-        username = intent.getStringExtra("username")
+        username = coins.username
 
         val text = "Hi, ${username}!"
         val duration = Toast.LENGTH_SHORT
@@ -111,6 +121,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync(this)
 
+        tickTockTextView = findViewById(R.id.tickTock)
+        tickTockTextView?.text = "10:00"
+        if (coins.gameMode == "easy") {
+            tickTockTextView?.visibility = View.GONE
+        } else {
+            tickTockTextView?.visibility = View.VISIBLE
+        }
+
        // bankButton = findViewById(R.id.)
 
       //  bankButton = findViewById(R.id.bankButton)
@@ -127,11 +145,29 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
         commenceButton?.setOnClickListener {
             changeButton(commenceButton, false)
+            timerLengthSeconds = System.currentTimeMillis() // this will be used to measure how long it took to collect all coins
             val position = CameraPosition.Builder()
                 .zoom(18.0)
                 .build()
             map?.cameraPosition = position
             isChasing = true
+
+            tickTock = object: CountDownTimer(600000, 1000) {
+                override fun onFinish() {
+                  //  TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                    isChasing = false
+                    // Set an Alert Dialog
+                }
+
+                override fun onTick(millisUntilFinished: Long) {
+                  //  TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                    secondsRemaining = millisUntilFinished / 1000
+                    if (secondsRemaining < 60) {
+                        tickTockTextView?.setTextColor(Color.RED)
+                    }
+                    updateCountDownUI()
+                }
+            }.start()
         }
 
 
@@ -146,6 +182,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
         coinsRef?.get()?.addOnCompleteListener(this) { task ->
             if (task.isSuccessful) {
                 val coins = task.result?.data?.count()
+
                 if(coins != null) {
                     coinCounter = coins.toInt() -1
 
@@ -155,12 +192,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                 coinClock?.text = getString(R.string.coinValue, coinCounter)
 
             }
+
+            coins.coinCounter = coinCounter
+
         }
 
         firestoreCoins = firestore?.collection("users-bank")?.document(username)?.collection("coins")
             ?.document(today)
 
-        coins.coinCounter = coinCounter
 
         Log.d(tag, "View is done loading")
 
@@ -168,6 +207,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
 
 
 
+    }
+
+    private fun updateCountDownUI() {
+        val minutesUntilFinished = secondsRemaining / 60
+        val secondsInMinuteUntilFinished = secondsRemaining - minutesUntilFinished * 60
+        val secondsString = secondsInMinuteUntilFinished.toString()
+        val minutesString = minutesUntilFinished.toString()
+        tickTockTextView?.setText("$minutesString:${if (secondsString.length == 2) secondsString else "0" + secondsString}")
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -448,7 +495,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                     //   builder.setMessage()
                     builder.setPositiveButton(R.string.collect) { dialog, which ->
                         dialog.dismiss()
+                        if (coins.gameMode == "difficult") {
+                            locations.remove(loc) // coins can only be collected once in the difficult mode
+                        }
                         coinCounter++
+                        val tEnd = System.currentTimeMillis()
+                        val delta = (timerLengthSeconds - tEnd) / 1000
+                        val timeToCollect = abs(delta.toInt())
                         coins.coinCounter = coinCounter
                         val coinCountText = getString(R.string.coinValue, coinCounter)
                         coinClock?.text = coinCountText
@@ -457,7 +510,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                         val newCoin = mapOf(
                             "gold_${coinCounter}" to coin,
                             //    "username" to username
-                                 "totalCoins" to coinCounter
+                                 "totalCoins" to coinCounter,
+                                 "duration" to timeToCollect
                         )
 
 
@@ -580,12 +634,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
                     with(documentSnapshot) {
                         // we'll just create a Toast announcing a new Coin has been added
                         Log.d(tag, "coin received")
-                        val text = "New coin received!"
-                        val duration = Toast.LENGTH_LONG
 
-                        val toast = Toast.makeText(applicationContext, text, duration)
-                        toast.show()
+                        if (!isChasing) { // only display the message if the user is not already playing
+                            val text = "New coin received!"
+                            val duration = Toast.LENGTH_LONG
 
+                            val toast = Toast.makeText(applicationContext, text, duration)
+                            toast.show()
+                        }
                     }
                 }
             }
@@ -628,6 +684,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
             super.onPostExecute(result)
 
             caller.downloadComplete(result)
+
         }
     }
 
@@ -642,6 +699,7 @@ class coins: Application() {
     companion object {
         var coinCounter = 0
         var username = ""
+        var gameMode = ""
 
         // the spare change, converted to GOLD, will be stored in this global List
         var spareChange : Queue<Double> = ArrayDeque<Double>()
@@ -649,3 +707,6 @@ class coins: Application() {
 
 
 }
+
+
+

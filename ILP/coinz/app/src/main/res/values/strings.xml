@@ -38,4 +38,7 @@
     <string name="friend_name">Enter username</string>
     <string name="confirmation_send">Are you sure? This action is irreversible.</string>
     <string name="instructions_send">Select how many coins to send and press OK.</string>
+    <string name="normal_mode">Easy</string>
+    <string name="advanced_mode">Difficult</string>
+    <string name="select_mode">Select a level of game</string>
 </resources>

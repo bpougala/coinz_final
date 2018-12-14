@@ -33,7 +33,8 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 
-class BankActivity : AppCompatActivity() {
+class BankActivity : AppCompatActivity()
+{
 
     private var coinCount = 0
     private var firestore: FirebaseFirestore? = null
@@ -82,6 +83,7 @@ class BankActivity : AppCompatActivity() {
     }
 
     private fun initToolbar() {
+        // this is the toolbar displayed on screen
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar!!.title = "Bank"
@@ -107,10 +109,6 @@ class BankActivity : AppCompatActivity() {
         }
     }
 
-    fun onClick(v : View) {
-        val strTag = v.getTag().toString()
-        Log.d(tag, "Button clicked")
-    }
 
     override fun onStart() {
         super.onStart()
@@ -118,5 +116,11 @@ class BankActivity : AppCompatActivity() {
     //TODO: Put graphs for in-depth statistics about daily and weekly coins
 
 
+
+}
+
+interface myCallBack {
+
+    fun onCallback(value: Map<Int, Int>)
 
 }

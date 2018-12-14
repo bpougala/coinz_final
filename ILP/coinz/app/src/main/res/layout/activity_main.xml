@@ -50,6 +50,15 @@
             mapbox:layout_constraintTop_toBottomOf="@+id/startChasingButton"
             mapbox:layout_constraintBottom_toBottomOf="parent" android:layout_marginBottom="16dp"
             mapbox:layout_constraintEnd_toStartOf="@+id/coinCounter"/>
+    <TextView
+            android:layout_width="89dp"
+            android:layout_height="34dp"
+            app:fontFamily="@font/rubik_medium"
+            android:textSize="20sp"
+            android:id="@+id/tickTock" mapbox:layout_constraintStart_toStartOf="parent"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="392dp" mapbox:layout_constraintTop_toBottomOf="@+id/startChasingButton"
+            android:layout_marginBottom="16dp" mapbox:layout_constraintBottom_toBottomOf="parent"/>
 
 
 </android.support.constraint.ConstraintLayout>

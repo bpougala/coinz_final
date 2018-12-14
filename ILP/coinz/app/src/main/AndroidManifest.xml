@@ -53,6 +53,12 @@
 
         </activity>
 
+        <activity android:name=".SelectMenu"
+                  android:label="Select a level"
+                  android:theme="@style/AppTheme.NoActionBar">
+
+        </activity>
+
     </application>
 
 

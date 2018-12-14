@@ -16,7 +16,9 @@ import java.util.*
 import android.graphics.Color
 import android.util.Log
 import com.jjoe64.graphview.helper.DateAsXAxisLabelFormatter
+import com.jjoe64.graphview.series.BarGraphSeries
 import com.jjoe64.graphview.series.LineGraphSeries
+import kotlinx.android.synthetic.main.fragment_bank.*
 import java.time.LocalDate
 
 
@@ -30,6 +32,8 @@ class BankFragment: Fragment() {
     private var tag_new = "BankFragment"
     private lateinit var  values: MutableList<DataPoint>
     private lateinit var dates: MutableList<Date>
+    private lateinit var times: MutableList<DataPoint>
+    private var timesWeekly : GraphView? = null // used to store the durations for each coin hunt
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         super.onCreateView(inflater, container, savedInstanceState)
@@ -40,6 +44,11 @@ class BankFragment: Fragment() {
         headline?.text = getString(R.string.coinsBank, coinCounter)
         values = mutableListOf()
         dates = mutableListOf()
+        times = mutableListOf()
+
+        graphWeekly = view.findViewById(R.id.graphWeekly)
+        timesWeekly = view.findViewById(R.id.graphWeeklyTime)
+
 
 
         firestore = FirebaseFirestore.getInstance()
@@ -74,13 +83,14 @@ class BankFragment: Fragment() {
                 val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.UK)
                 val today = formatter.parse(LocalDate.now().toString()).time
                 val date = formatter.parse(id)
-                val trial = date.toString()
                 val timeStampDay = date.time
-                Log.d(tag_new, "The day is ${date.toString()}")
                 if (timeStampDay >= startOfWeek) { // if the date is withing a 7-day time frame
                     dates.add(date)
                     i++
                     val number = document.get("totalCoins").toString().toInt()
+                    val duration = document.get("duration").toString().toDouble()
+                    val timePoint = DataPoint(date, duration)
+                    times.add(timePoint)
                     coinCount += number
 
                     val point = DataPoint(date, number.toDouble())
@@ -91,20 +101,29 @@ class BankFragment: Fragment() {
             }
 
             // set date label formatter
+            Log.d(tag_new, values.toString())
 
             val seriesGraph: LineGraphSeries<DataPoint> = LineGraphSeries(values.toTypedArray())
+            val timesGraph: BarGraphSeries<DataPoint> = BarGraphSeries(times.toTypedArray())
+            timesWeekly?.addSeries(timesGraph)
             graphWeekly?.addSeries(seriesGraph)
 
             graphWeekly?.gridLabelRenderer?.labelFormatter = DateAsXAxisLabelFormatter(activity)
+            timesWeekly?.gridLabelRenderer?.labelFormatter = DateAsXAxisLabelFormatter(activity)
 
             graphWeekly?.gridLabelRenderer?.numHorizontalLabels = values.size
+            timesWeekly?.gridLabelRenderer?.numHorizontalLabels = times.size
 
-            //   graphWeekly?.viewport?.setMinX(minX.time.toDouble())
-            //   graphWeekly?.viewport?.setMaxX(maxX.time.toDouble())
+
+            val minX = values[1].x
+            val maxX = values.last().x
+
+
+            graphWeekly?.viewport?.setMinX(minX)
+            graphWeekly?.viewport?.setMaxX(maxX)
 
 
             graphWeekly?.viewport?.isXAxisBoundsManual = true
-            //   graphWeekly?.gridLabelRenderer?.setHumanRounding(false)
 
             // Now we can display the total number of coins in the hea
             }
