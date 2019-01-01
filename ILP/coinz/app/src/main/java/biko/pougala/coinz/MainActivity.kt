@@ -66,8 +66,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, LocationEngineList
     private val tag = "MainActivity"
     private var mapView: MapView? = null
     private var map: MapboxMap? = null
-    private var ACCESS_TOKEN =
-        "pk.eyJ1IjoiYnBvdWdhbGEiLCJhIjoiY2pqaGE1empjNTE1ZzN3cjVnZ2RnN3RoNSJ9.EYB-fQasYyuPp9hPeSE_FA"
+    private var ACCESS_TOKEN = ""
     private var commenceButton: Button? = null
     private var locations = HashMap<Location, ArrayList<String>>()
     private var isChasing: Boolean = false
